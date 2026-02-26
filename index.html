@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Morphology Mech: Word Builder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap');
+        
+        body {
+            font-family: 'Share Tech Mono', monospace;
+            background-color: #0f172a; /* slate-900 */
+            color: #38bdf8; /* sky-400 */
+            overflow-x: hidden;
+        }
+
+        .mech-panel {
+            background: linear-gradient(145deg, #1e293b, #0f172a);
+            border: 2px solid #0369a1;
+            box-shadow: 0 0 15px rgba(3, 105, 161, 0.5), inset 0 0 20px rgba(0, 0, 0, 0.8);
+        }
+
+        .mech-screen {
+            background-color: #022c22;
+            border: 4px solid #064e3b;
+            box-shadow: inset 0 0 10px #000;
+            color: #34d399;
+            text-shadow: 0 0 5px #34d399;
+        }
+
+        .part-btn {
+            transition: all 0.2s ease;
+            border: 1px solid #334155;
+            background-color: #1e293b;
+        }
+
+        .part-btn:hover {
+            background-color: #334155;
+            border-color: #38bdf8;
+        }
+
+        .part-btn.active {
+            background-color: #0369a1;
+            color: #fff;
+            border-color: #7dd3fc;
+            box-shadow: 0 0 10px #0ea5e9;
+        }
+
+        .scan-line {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 5px;
+            background-color: rgba(52, 211, 153, 0.5);
+            opacity: 0;
+            box-shadow: 0 0 10px rgba(52, 211, 153, 1);
+        }
+
+        @keyframes scan {
+            0% { top: 0; opacity: 1; }
+            50% { opacity: 1; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        .scanning .scan-line {
+            animation: scan 1.5s ease-in-out;
+        }
+
+        /* Custom Scrollbar for lists */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #0369a1; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #0ea5e9; 
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col p-2 sm:p-4 overflow-hidden">
+
+    <!-- Header -->
+    <header class="text-center mb-2 sm:mb-4 shrink-0">
+        <h1 class="text-3xl sm:text-4xl font-bold text-sky-400 drop-shadow-[0_0_10px_rgba(56,189,248,0.8)] tracking-wider">MORPHOLOGY MECH</h1>
+        <p class="text-sm sm:text-base text-sky-200 mt-1">Construct words. Decode meanings. Power up the core.</p>
+    </header>
+
+    <!-- Main Interface -->
+    <main class="flex-grow flex flex-col lg:flex-row gap-3 sm:gap-4 max-w-7xl mx-auto w-full min-h-0">
+        
+        <!-- Left: Word Assembly Station -->
+        <section class="lg:w-2/3 flex flex-col gap-3 min-h-0">
+            
+            <!-- Mech Screen (Output) -->
+            <div id="mech-display" class="mech-screen rounded-xl p-4 sm:p-6 relative overflow-hidden flex flex-col items-center justify-center min-h-[160px] shrink-0">
+                <div class="scan-line"></div>
+                <div class="text-xs uppercase tracking-widest text-emerald-700 absolute top-2 left-2">System Output</div>
+                <div class="text-xs uppercase tracking-widest text-emerald-700 absolute top-2 right-2">Status: <span id="status-indicator" class="text-emerald-500">Ready</span></div>
+                
+                <h2 id="assembled-word" class="text-4xl sm:text-5xl font-bold tracking-widest mt-2 sm:mt-4">_ _ _</h2>
+                <div id="literal-meaning" class="text-base sm:text-lg text-emerald-300 mt-2 text-center max-w-lg h-6">Select parts to begin assembly.</div>
+                
+                <div id="word-verdict" class="mt-2 px-4 py-1 rounded text-xs sm:text-sm font-bold opacity-0 transition-opacity duration-300 border-2">
+                    <!-- Verdict appears here -->
+                </div>
+            </div>
+
+            <button id="analyze-btn" class="mech-panel w-full py-2 sm:py-3 text-lg sm:text-xl font-bold text-sky-300 hover:text-white hover:bg-sky-900 rounded-xl transition-all shadow-[0_0_15px_rgba(3,105,161,0.5)] active:scale-95 shrink-0">
+                [ ENGAGE ANALYSIS SCANNER ]
+            </button>
+
+            <!-- Assembly Controls (Columns) -->
+            <div class="grid grid-cols-3 gap-2 sm:gap-4 mech-panel p-2 sm:p-4 rounded-xl flex-grow min-h-0">
+                
+                <!-- Prefixes -->
+                <div class="flex flex-col h-full min-h-0">
+                    <div class="text-center mb-2 border-b border-sky-800 pb-1 shrink-0">
+                        <h3 class="text-base sm:text-lg font-bold text-sky-300">PREFIX</h3>
+                        <p class="text-[10px] sm:text-xs text-slate-400">(Beginning)</p>
+                    </div>
+                    <div id="prefix-list" class="flex flex-col gap-2 overflow-y-auto pr-1 sm:pr-2 flex-grow">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Roots -->
+                <div class="flex flex-col h-full min-h-0">
+                    <div class="text-center mb-2 border-b border-sky-800 pb-1 shrink-0">
+                        <h3 class="text-base sm:text-lg font-bold text-sky-300">ROOT</h3>
+                        <p class="text-[10px] sm:text-xs text-slate-400">(Core Meaning)</p>
+                    </div>
+                    <div id="root-list" class="flex flex-col gap-2 overflow-y-auto pr-1 sm:pr-2 flex-grow">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+                <!-- Suffixes -->
+                <div class="flex flex-col h-full min-h-0">
+                    <div class="text-center mb-2 border-b border-sky-800 pb-1 shrink-0">
+                        <h3 class="text-base sm:text-lg font-bold text-sky-300">SUFFIX</h3>
+                        <p class="text-[10px] sm:text-xs text-slate-400">(Ending)</p>
+                    </div>
+                    <div id="suffix-list" class="flex flex-col gap-2 overflow-y-auto pr-1 sm:pr-2 flex-grow">
+                        <!-- Populated by JS -->
+                    </div>
+                </div>
+
+            </div>
+            
+        </section>
+
+        <!-- Right: Lab Notes / Inventory -->
+        <section class="lg:w-1/3 mech-panel rounded-xl p-3 sm:p-4 flex flex-col min-h-0">
+            <h3 class="text-xl sm:text-2xl font-bold text-center border-b border-sky-800 pb-2 mb-2 sm:mb-4 shrink-0">Discovery Log</h3>
+            
+            <div class="flex justify-between text-xs sm:text-sm mb-2 px-2 shrink-0">
+                <span>Real Words: <span id="real-count" class="text-green-400">0</span></span>
+                <span>Mutants: <span id="mutant-count" class="text-purple-400">0</span></span>
+            </div>
+
+            <div class="bg-slate-900 flex-grow rounded border border-slate-700 p-2 overflow-y-auto min-h-0">
+                <ul id="discovery-list" class="space-y-2 text-xs sm:text-sm">
+                    <li class="text-slate-500 italic text-center mt-4">Log empty. Start combining parts!</li>
+                </ul>
+            </div>
+            
+            <button id="clear-log-btn" class="mt-2 sm:mt-4 border border-red-900 text-red-500 hover:bg-red-950 py-1 sm:py-2 rounded text-xs sm:text-sm transition-colors shrink-0">
+                Clear Log
+            </button>
+        </section>
+
+    </main>
+
+    <!-- Data and Logic -->
+    <script>
+        // --- 1. Mophology Data ---
+        // Appropriate for 4th/5th grade level
+        const prefixes = [
+            { id: 'p_none', text: '---', meaning: '', type: 'none' },
+            { id: 'p1', text: 'un', meaning: 'not', type: 'prefix' },
+            { id: 'p2', text: 're', meaning: 'again or back', type: 'prefix' },
+            { id: 'p3', text: 'pre', meaning: 'before', type: 'prefix' },
+            { id: 'p4', text: 'tele', meaning: 'far or distant', type: 'prefix' },
+            { id: 'p5', text: 'micro', meaning: 'very small', type: 'prefix' },
+            { id: 'p6', text: 'sub', meaning: 'under or below', type: 'prefix' },
+            { id: 'p7', text: 'inter', meaning: 'between or among', type: 'prefix' }, // swapped bio for inter
+            { id: 'p8', text: 'trans', meaning: 'across or beyond', type: 'prefix' },
+            { id: 'p9', text: 'anti', meaning: 'against', type: 'prefix' },
+            { id: 'p10', text: 'de', meaning: 'down or remove', type: 'prefix' }
+        ];
+
+        const roots = [
+            { id: 'r1', text: 'graph', meaning: 'to write or draw' },
+            { id: 'r2', text: 'port', meaning: 'to carry' },
+            { id: 'r3', text: 'dict', meaning: 'to say or speak' },
+            { id: 'r4', text: 'meter', meaning: 'to measure' },
+            { id: 'r5', text: 'struct', meaning: 'to build' },
+            { id: 'r6', text: 'phon', meaning: 'sound' },
+            { id: 'r7', text: 'scop', meaning: 'to look or see' },
+            { id: 'r8', text: 'chron', meaning: 'time' },
+            { id: 'r9', text: 'tract', meaning: 'to pull or drag' },
+            { id: 'r10', text: 'ject', meaning: 'to throw' },
+            { id: 'r11', text: 'bio', meaning: 'life' } // added bio here
+        ];
+
+        const suffixes = [
+            { id: 's_none', text: '---', meaning: '', type: 'none' },
+            { id: 's1', text: 'er', meaning: 'a person or thing that does' },
+            { id: 's2', text: 'or', meaning: 'a person or thing that does' },
+            { id: 's3', text: 'able', meaning: 'capable of being' },
+            { id: 's4', text: 'ible', meaning: 'capable of being' },
+            { id: 's5', text: 'ology', meaning: 'the study of' },
+            { id: 's6', text: 'tion', meaning: 'the action or process of' },
+            { id: 's7', text: 'ic', meaning: 'having characteristics of' },
+            { id: 's8', text: 'less', meaning: 'without' },
+            { id: 's9', text: 'ful', meaning: 'full of' },
+            { id: 's10', text: 'e', meaning: '(makes word a noun/verb)', type: 'silent' } // Helpful for words like scope, dictate
+        ];
+
+        // Dictionary of actual valid English combinations (expanded)
+        const dictionary = new Set([
+            'telegraph', 'telephone', 'telescope', 'microscope', 'microbiology',
+            'biology', 'chronology', 'transport', 'transportable', 'transportation',
+            'report', 'reporter', 'reportable', 'predict', 'predictable', 'unpredictable',
+            'prediction', 'predictor', 'construct', 'construction', 'reconstruct', 
+            'deconstruct', 'destruct', 'destruction', 'destructible', 'structure', 
+            'restructure', 'substructure', 'destructure', 'subtract', 'subtractor', 
+            'subtraction', 'tractor', 'attract', 'attraction', 'reject', 'rejection',
+            'inject', 'injection', 'project', 'projector', 'projection', 'phonograph', 
+            'meter', 'barometer', 'thermometer', 'dictate', 'dictator', 'dictation', 
+            'diction', 'portable', 'export', 'import', 'struct', 'retract', 'retractable', 
+            'retractor', 'retraction', 'detract', 'detractor', 'detraction', 'tractable', 
+            'traction', 'scope', 'telescopic', 'microscopic', 'graph', 'graphic', 
+            'telegraphic', 'micrograph', 'micrographic', 'porter', 'teleport', 'teleporter', 
+            'teleportation', 'deport', 'deportable', 'deportation', 'telemeter', 'micrometer', 
+            'chronometer', 'phone', 'telephonic', 'microphone', 'microphonic', 'chronic', 
+            'subject', 'subjection', 'deject', 'dejection', 'interject', 'interjection', 
+            'biotic', 'antibiotic'
+        ]);
+
+        // --- 2. Application State ---
+        let state = {
+            prefix: prefixes[0], // default 'none'
+            root: null,          // must be selected
+            suffix: suffixes[0], // default 'none'
+            discovered: []
+        };
+
+        // --- 3. DOM Elements ---
+        const els = {
+            prefixList: document.getElementById('prefix-list'),
+            rootList: document.getElementById('root-list'),
+            suffixList: document.getElementById('suffix-list'),
+            wordDisplay: document.getElementById('assembled-word'),
+            meaningDisplay: document.getElementById('literal-meaning'),
+            analyzeBtn: document.getElementById('analyze-btn'),
+            mechDisplay: document.getElementById('mech-display'),
+            verdict: document.getElementById('word-verdict'),
+            discoveryList: document.getElementById('discovery-list'),
+            realCount: document.getElementById('real-count'),
+            mutantCount: document.getElementById('mutant-count'),
+            clearLogBtn: document.getElementById('clear-log-btn')
+        };
+
+        // --- 4. Initialization & Rendering ---
+        function init() {
+            renderList(prefixes, els.prefixList, 'prefix');
+            renderList(roots, els.rootList, 'root');
+            renderList(suffixes, els.suffixList, 'suffix');
+            
+            // Set initial defaults visually
+            selectPart('p_none', 'prefix');
+            selectPart('s_none', 'suffix');
+
+            els.analyzeBtn.addEventListener('click', analyzeWord);
+            els.clearLogBtn.addEventListener('click', clearLog);
+        }
+
+        function renderList(dataArray, container, type) {
+            container.innerHTML = '';
+            dataArray.forEach(item => {
+                const btn = document.createElement('button');
+                btn.id = `btn-${item.id}`;
+                btn.className = `part-btn w-full p-2 rounded text-left flex flex-col`;
+                btn.onclick = () => selectPart(item.id, type);
+                
+                const mainText = document.createElement('span');
+                mainText.className = 'font-bold text-lg';
+                mainText.innerText = item.text === '---' ? '[ NONE ]' : item.text + (type==='prefix'?'-' : type==='suffix'?'-':'');
+
+                const subText = document.createElement('span');
+                subText.className = 'text-xs text-sky-500 truncate';
+                subText.innerText = item.meaning;
+
+                btn.appendChild(mainText);
+                btn.appendChild(subText);
+                container.appendChild(btn);
+            });
+        }
+
+        // --- 5. Logic & Interaction ---
+        function selectPart(id, type) {
+            // Remove active class from old selection
+            let dataArray;
+            if (type === 'prefix') dataArray = prefixes;
+            if (type === 'root') dataArray = roots;
+            if (type === 'suffix') dataArray = suffixes;
+
+            const selectedItem = dataArray.find(i => i.id === id);
+            
+            // Update UI buttons
+            const buttons = els[`${type}List`].querySelectorAll('button');
+            buttons.forEach(b => b.classList.remove('active'));
+            document.getElementById(`btn-${id}`).classList.add('active');
+
+            // Update State
+            state[type] = selectedItem;
+
+            // Reset UI output
+            updatePreview();
+        }
+
+        function updatePreview() {
+            els.verdict.style.opacity = 0;
+            els.mechDisplay.classList.remove('scanning');
+
+            let wordStr = "";
+            let prefixStr = state.prefix && state.prefix.type !== 'none' ? `<span class="text-sky-300">${state.prefix.text}-</span>` : "";
+            let rootStr = state.root ? `<span class="text-white">${state.root.text}</span>` : `<span class="text-slate-500">[ROOT]</span>`;
+            let suffixStr = state.suffix && state.suffix.type !== 'none' ? `<span class="text-sky-300">-${state.suffix.text}</span>` : "";
+
+            els.wordDisplay.innerHTML = prefixStr + rootStr + suffixStr;
+            els.meaningDisplay.innerText = "Awaiting Scanner...";
+            els.meaningDisplay.className = "text-lg sm:text-xl text-emerald-600 mt-4 text-center max-w-lg h-8 italic";
+        }
+
+        function analyzeWord() {
+            if (!state.root) {
+                alertSystemMessage("Error: Core ROOT module missing.", "error");
+                return;
+            }
+
+            // Trigger Animation
+            els.mechDisplay.classList.remove('scanning');
+            void els.mechDisplay.offsetWidth; // trigger reflow
+            els.mechDisplay.classList.add('scanning');
+
+            els.analyzeBtn.innerText = "[ SCANNING... ]";
+            els.analyzeBtn.disabled = true;
+
+            setTimeout(() => {
+                processResults();
+                els.analyzeBtn.innerText = "[ ENGAGE ANALYSIS SCANNER ]";
+                els.analyzeBtn.disabled = false;
+            }, 1000); // 1 second scan delay for effect
+        }
+
+        function processResults() {
+            // 1. Build the Raw Word String
+            let pText = state.prefix.type !== 'none' ? state.prefix.text : '';
+            let rText = state.root.text;
+            let sText = state.suffix.type !== 'none' ? state.suffix.text : '';
+            
+            let combinedWord = pText + rText + sText;
+
+            // 2. Build the "Mech" Literal Meaning
+            let meanings = [];
+            // Robot logic usually puts suffix meaning first (e.g. "a person who" + "builds" + "again")
+            if (state.suffix.meaning && state.suffix.type !== 'silent') meanings.push(state.suffix.meaning);
+            if (state.prefix.meaning) meanings.push(state.prefix.meaning);
+            if (state.root.meaning) meanings.push(state.root.meaning);
+
+            let literalTranslation = meanings.join(" + ");
+            if (state.suffix.type === 'silent') literalTranslation += " (Silent 'e' adjusts spelling/part of speech)";
+            
+            els.meaningDisplay.innerText = "Literal: " + literalTranslation;
+            els.meaningDisplay.className = "text-lg sm:text-xl text-emerald-300 mt-4 text-center max-w-lg h-auto";
+
+            // 3. Morphology Spelling Adjustments
+            let displayWord = combinedWord;
+            
+            if (sText === 'tion') {
+                if (rText === 'port') {
+                    displayWord = pText + rText + 'ation';
+                } else if (rText.endsWith('t')) {
+                    displayWord = pText + rText.slice(0,-1) + sText; 
+                }
+            }
+
+            if (sText === 'e') {
+                if (rText === 'struct') displayWord = pText + 'structure';
+                else if (rText === 'dict') displayWord = pText + 'dictate';
+                else if (rText === 'phon') displayWord = pText + 'phone';
+                else if (rText === 'scop') displayWord = pText + 'scope';
+            }
+
+            if (rText === 'meter' && pText === 'chron') displayWord = 'chronometer';
+            if (rText === 'dict' && sText === 'or' && pText === '') displayWord = 'dictator';
+            if (rText === 'dict' && sText === 'tion' && pText === '') displayWord = 'dictation';
+            
+            if (rText === 'bio') {
+                if (sText === 'ology') displayWord = pText + 'biology';
+                if (sText === 'ic') displayWord = pText + 'biotic';
+            }
+            
+            const isReal = checkDictionary(displayWord, combinedWord);
+
+            // 4. Update UI with Verdict
+            els.wordDisplay.innerText = displayWord.toUpperCase();
+            
+            if (isReal) {
+                els.verdict.innerText = "VERDICT: VALID ENGLISH WORD VALIDATED";
+                els.verdict.className = "mt-4 px-4 py-1 rounded text-sm font-bold transition-opacity duration-300 border-2 text-green-400 border-green-400 bg-green-900/30 opacity-100";
+                addToLog(displayWord, literalTranslation, 'real');
+            } else {
+                els.verdict.innerText = "VERDICT: MUTANT WORD DETECTED";
+                els.verdict.className = "mt-4 px-4 py-1 rounded text-sm font-bold transition-opacity duration-300 border-2 text-purple-400 border-purple-400 bg-purple-900/30 opacity-100";
+                addToLog(displayWord, literalTranslation, 'mutant');
+            }
+        }
+
+        function checkDictionary(wordToCheck, exactCombination) {
+            if (dictionary.has(wordToCheck.toLowerCase())) return true;
+            if (dictionary.has(exactCombination.toLowerCase())) return true;
+            return false;
+        }
+
+        function alertSystemMessage(msg, type) {
+            els.meaningDisplay.innerText = msg;
+            els.meaningDisplay.className = "text-lg sm:text-xl mt-4 text-center max-w-lg h-8 " + (type === 'error' ? 'text-red-500' : 'text-emerald-500');
+        }
+
+        // --- 6. Logging / Inventory ---
+        function addToLog(word, meaning, type) {
+            // Check if already in log to prevent spam
+            if (state.discovered.includes(word)) return;
+            state.discovered.push(word);
+
+            // Remove empty message if it's the first item
+            if (state.discovered.length === 1) {
+                els.discoveryList.innerHTML = '';
+            }
+
+            const li = document.createElement('li');
+            li.className = `p-2 rounded border border-slate-700 bg-slate-800 flex flex-col`;
+            
+            const header = document.createElement('div');
+            header.className = 'flex justify-between items-center';
+            
+            const wSpan = document.createElement('span');
+            wSpan.className = `font-bold text-lg ${type === 'real' ? 'text-green-400' : 'text-purple-400'}`;
+            wSpan.innerText = word.toLowerCase();
+
+            const badge = document.createElement('span');
+            badge.className = `text-[10px] px-1 rounded uppercase border ${type === 'real' ? 'text-green-400 border-green-400' : 'text-purple-400 border-purple-400'}`;
+            badge.innerText = type;
+
+            header.appendChild(wSpan);
+            header.appendChild(badge);
+
+            const mSpan = document.createElement('span');
+            mSpan.className = 'text-xs text-slate-400 mt-1';
+            mSpan.innerText = meaning;
+
+            li.appendChild(header);
+            li.appendChild(mSpan);
+
+            // Add to top of list
+            els.discoveryList.insertBefore(li, els.discoveryList.firstChild);
+
+            // Update Counts
+            if (type === 'real') {
+                els.realCount.innerText = parseInt(els.realCount.innerText) + 1;
+            } else {
+                els.mutantCount.innerText = parseInt(els.mutantCount.innerText) + 1;
+            }
+        }
+
+        function clearLog() {
+            state.discovered = [];
+            els.discoveryList.innerHTML = '<li class="text-slate-500 italic text-center mt-4">Log empty. Start combining parts!</li>';
+            els.realCount.innerText = '0';
+            els.mutantCount.innerText = '0';
+        }
+
+        // Initialize App
+        window.onload = init;
+
+    </script>
+</body>
+</html>
