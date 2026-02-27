@@ -68,6 +68,39 @@
             animation: scan 1.5s ease-in-out;
         }
 
+        /* Writing Lab Editor Styles */
+        .editor-container {
+            position: relative;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 1.125rem;
+            line-height: 1.5;
+        }
+        .editor-backdrop {
+            position: absolute;
+            z-index: 1;
+            inset: 0;
+            padding: 1rem;
+            color: #94a3b8; /* slate-400 for normal text */
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            overflow-y: auto;
+            pointer-events: none;
+        }
+        .editor-textarea {
+            position: absolute;
+            z-index: 2;
+            inset: 0;
+            padding: 1rem;
+            width: 100%; 
+            height: 100%;
+            background: transparent;
+            color: transparent; /* Make typed text invisible so backdrop shows through */
+            caret-color: #38bdf8; /* blue cursor */
+            resize: none;
+            outline: none;
+            overflow-y: auto;
+        }
+
         /* Custom Scrollbar for lists */
         ::-webkit-scrollbar {
             width: 8px;
@@ -158,7 +191,15 @@
 
         <!-- Right: Lab Notes / Inventory -->
         <section class="lg:w-1/3 mech-panel rounded-xl p-3 sm:p-4 flex flex-col min-h-0">
-            <h3 class="text-xl sm:text-2xl font-bold text-center border-b border-sky-800 pb-2 mb-2 sm:mb-4 shrink-0">Discovery Log</h3>
+            <div class="flex justify-between items-center border-b border-sky-800 pb-2 mb-2 sm:mb-4 shrink-0">
+                <h3 class="text-xl sm:text-2xl font-bold text-center flex-grow">Discovery Log</h3>
+                <button id="open-writing-btn" class="hidden bg-sky-900 hover:bg-sky-700 text-sky-200 p-2 rounded-lg border border-sky-500 transition-all shadow-[0_0_10px_rgba(56,189,248,0.4)]" title="Open Writing Lab">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18h.01M8 21h8a2 2 0 002-2V5a2 2 0 00-2-2H8a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                    </svg>
+                    <span class="text-xs block text-center mt-1 uppercase">Write</span>
+                </button>
+            </div>
             
             <div class="flex justify-between text-xs sm:text-sm mb-2 px-2 shrink-0">
                 <span>Real Words: <span id="real-count" class="text-green-400">0</span></span>
@@ -177,6 +218,54 @@
         </section>
 
     </main>
+
+    <!-- Writing Lab Modal (Hidden by default) -->
+    <div id="writing-lab-modal" class="hidden fixed inset-0 z-50 bg-slate-900/95 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="mech-panel w-full max-w-5xl h-[90vh] rounded-2xl flex flex-col p-4 sm:p-6 border-4 border-sky-700 relative shadow-[0_0_50px_rgba(3,105,161,0.6)]">
+            
+            <button id="close-writing-btn" class="absolute top-4 right-4 text-sky-400 hover:text-white bg-slate-800 hover:bg-red-900 p-2 rounded border border-sky-800 hover:border-red-500 transition-colors">
+                ✕ CLOSE
+            </button>
+
+            <h2 class="text-3xl font-bold text-sky-400 tracking-widest text-center mb-2">SYNTHESIS LAB</h2>
+            <p class="text-center text-slate-400 text-sm mb-4">Construct a narrative using your discovered words. Real words appear <span class="text-green-400">green</span>, mutant words appear <span class="text-purple-400">purple</span>.</p>
+
+            <div class="flex flex-col lg:flex-row gap-4 flex-grow min-h-0">
+                
+                <!-- Word Bank -->
+                <div class="lg:w-1/4 bg-slate-800 rounded-xl border-2 border-slate-700 p-3 flex flex-col min-h-[150px]">
+                    <h3 class="text-sky-300 font-bold border-b border-slate-600 pb-1 mb-2">Word Bank</h3>
+                    <div id="word-bank-list" class="flex flex-wrap gap-2 overflow-y-auto content-start flex-grow">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+
+                <!-- Editor -->
+                <div class="lg:w-3/4 flex flex-col bg-slate-950 rounded-xl border-2 border-sky-900 overflow-hidden relative">
+                    <div class="bg-sky-950/50 p-2 flex justify-between items-center border-b border-sky-900 shrink-0">
+                        <span class="text-sm text-sky-200">System.Text.Input</span>
+                        <span id="story-progress" class="text-sm font-bold text-emerald-400">0 / 10 Words Used</span>
+                    </div>
+                    
+                    <div class="editor-container flex-grow h-full bg-[#050b14]">
+                        <div id="highlight-layer" class="editor-backdrop"></div>
+                        <textarea id="story-textarea" class="editor-textarea" spellcheck="false" placeholder="Begin transmission..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Send Button -->
+            <div class="mt-4 flex justify-end shrink-0">
+                <button id="send-story-btn" class="hidden bg-emerald-700 hover:bg-emerald-600 text-white px-8 py-3 rounded-xl font-bold tracking-wider border-2 border-emerald-400 shadow-[0_0_15px_rgba(52,211,153,0.5)] transition-all flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    TRANSMIT TO HEADQUARTERS
+                </button>
+            </div>
+
+        </div>
+    </div>
 
     <!-- Data and Logic -->
     <script>
@@ -250,7 +339,8 @@
             prefix: prefixes[0], // default 'none'
             root: null,          // must be selected
             suffix: suffixes[0], // default 'none'
-            discovered: []
+            discovered: [],
+            wordTypes: {}        // tracks if a discovered word is 'real' or 'mutant'
         };
 
         // --- 3. DOM Elements ---
@@ -266,7 +356,17 @@
             discoveryList: document.getElementById('discovery-list'),
             realCount: document.getElementById('real-count'),
             mutantCount: document.getElementById('mutant-count'),
-            clearLogBtn: document.getElementById('clear-log-btn')
+            clearLogBtn: document.getElementById('clear-log-btn'),
+            
+            // Writing Lab Elements
+            openWritingBtn: document.getElementById('open-writing-btn'),
+            writingLabModal: document.getElementById('writing-lab-modal'),
+            closeWritingBtn: document.getElementById('close-writing-btn'),
+            wordBankList: document.getElementById('word-bank-list'),
+            storyTextarea: document.getElementById('story-textarea'),
+            highlightLayer: document.getElementById('highlight-layer'),
+            storyProgress: document.getElementById('story-progress'),
+            sendStoryBtn: document.getElementById('send-story-btn')
         };
 
         // --- 4. Initialization & Rendering ---
@@ -281,6 +381,13 @@
 
             els.analyzeBtn.addEventListener('click', analyzeWord);
             els.clearLogBtn.addEventListener('click', clearLog);
+            
+            // Writing Lab Listeners
+            els.openWritingBtn.addEventListener('click', openWritingLab);
+            els.closeWritingBtn.addEventListener('click', closeWritingLab);
+            els.storyTextarea.addEventListener('input', handleTyping);
+            els.storyTextarea.addEventListener('scroll', syncScroll);
+            els.sendStoryBtn.addEventListener('click', sendStory);
         }
 
         function renderList(dataArray, container, type) {
@@ -440,12 +547,20 @@
         // --- 6. Logging / Inventory ---
         function addToLog(word, meaning, type) {
             // Check if already in log to prevent spam
-            if (state.discovered.includes(word)) return;
-            state.discovered.push(word);
+            if (state.discovered.includes(word.toLowerCase())) return;
+            state.discovered.push(word.toLowerCase());
+            state.wordTypes[word.toLowerCase()] = type; // Save type for coloring later
 
             // Remove empty message if it's the first item
             if (state.discovered.length === 1) {
                 els.discoveryList.innerHTML = '';
+            }
+
+            // Show Writing Lab button if 10 words reached
+            if (state.discovered.length >= 10) {
+                els.openWritingBtn.classList.remove('hidden');
+                els.openWritingBtn.classList.add('animate-pulse'); // Draw attention to it
+                setTimeout(() => els.openWritingBtn.classList.remove('animate-pulse'), 3000);
             }
 
             const li = document.createElement('li');
@@ -485,9 +600,86 @@
 
         function clearLog() {
             state.discovered = [];
+            state.wordTypes = {};
             els.discoveryList.innerHTML = '<li class="text-slate-500 italic text-center mt-4">Log empty. Start combining parts!</li>';
             els.realCount.innerText = '0';
             els.mutantCount.innerText = '0';
+            els.openWritingBtn.classList.add('hidden');
+        }
+
+        // --- 7. Writing Lab Logic ---
+        function openWritingLab() {
+            els.writingLabModal.classList.remove('hidden');
+            
+            // Populate Word Bank
+            els.wordBankList.innerHTML = '';
+            state.discovered.forEach(word => {
+                const span = document.createElement('span');
+                const isReal = state.wordTypes[word] === 'real';
+                span.className = `px-2 py-1 rounded border text-xs sm:text-sm shadow-sm ${isReal ? 'text-green-400 border-green-800 bg-green-900/20' : 'text-purple-400 border-purple-800 bg-purple-900/20'}`;
+                span.innerText = word;
+                els.wordBankList.appendChild(span);
+            });
+
+            // Trigger highlighting parse just in case they are re-opening it
+            handleTyping();
+            els.storyTextarea.focus();
+        }
+
+        function closeWritingLab() {
+            els.writingLabModal.classList.add('hidden');
+        }
+
+        function syncScroll() {
+            // Keeps the invisible text area aligned with the colored background layer
+            els.highlightLayer.scrollTop = els.storyTextarea.scrollTop;
+            els.highlightLayer.scrollLeft = els.storyTextarea.scrollLeft;
+        }
+
+        function handleTyping() {
+            const rawText = els.storyTextarea.value;
+            const wordsUsed = new Set();
+            
+            // 1. Escape HTML to prevent bugs in the backdrop
+            let escapedText = rawText.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            
+            // 2. Find words and wrap them in colored spans if they are in the bank
+            const highlightedText = escapedText.replace(/\b([a-zA-Z]+)\b/g, (match, word) => {
+                const lowerWord = word.toLowerCase();
+                if (state.discovered.includes(lowerWord)) {
+                    wordsUsed.add(lowerWord);
+                    const type = state.wordTypes[lowerWord];
+                    if (type === 'real') {
+                        return `<span class="text-green-400 drop-shadow-[0_0_5px_rgba(74,222,128,0.8)] font-bold">${match}</span>`;
+                    } else {
+                        return `<span class="text-purple-400 drop-shadow-[0_0_5px_rgba(192,132,252,0.8)] font-bold">${match}</span>`;
+                    }
+                }
+                return match;
+            });
+
+            // 3. Update the background layer (replace line breaks with <br> for HTML)
+            els.highlightLayer.innerHTML = highlightedText.replace(/\n/g, '<br>') + '<br>'; // extra <br> fixes scrolling issue on last line
+
+            // 4. Update Progress
+            els.storyProgress.innerText = `${wordsUsed.size} / 10 Words Used`;
+            if (wordsUsed.size >= 10) {
+                els.storyProgress.classList.replace('text-emerald-400', 'text-yellow-400');
+                els.storyProgress.classList.add('animate-pulse');
+                els.sendStoryBtn.classList.remove('hidden');
+            } else {
+                els.storyProgress.classList.replace('text-yellow-400', 'text-emerald-400');
+                els.storyProgress.classList.remove('animate-pulse');
+                els.sendStoryBtn.classList.add('hidden');
+            }
+        }
+
+        function sendStory() {
+            // We will connect this to Google Apps script in Step 2!
+            const storyText = els.storyTextarea.value;
+            if(storyText.length < 10) return;
+            
+            alert("Step 2 Setup: Story ready to transmit! \n\nNext, we will wire this button up to send to your Google Sheet.");
         }
 
         // Initialize App
