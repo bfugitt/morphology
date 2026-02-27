@@ -243,7 +243,7 @@
                 <!-- Editor -->
                 <div class="lg:w-3/4 flex flex-col bg-slate-950 rounded-xl border-2 border-sky-900 overflow-hidden relative">
                     <div class="bg-sky-950/50 p-2 flex justify-between items-center border-b border-sky-900 shrink-0">
-                        <span class="text-sm text-sky-200">System.Text.Input</span>
+                        <input type="text" id="student-name" placeholder="Enter Agent Name..." class="bg-slate-900 text-sky-300 px-3 py-1 rounded border border-sky-800 outline-none focus:border-sky-400 focus:bg-slate-800 text-sm w-48 transition-colors">
                         <span id="story-progress" class="text-sm font-bold text-emerald-400">0 / 10 Words Used</span>
                     </div>
                     
@@ -269,6 +269,10 @@
 
     <!-- Data and Logic -->
     <script>
+        const CONFIG = {
+            scriptUrl: "https://script.google.com/macros/s/AKfycbzHAPIPZizqf2sCo1HAaDMdcXcG265I55yORB_-p6By6xoGmZoJLe_jc-Pna0YbDrUh/exec"
+        };
+
         // --- 1. Mophology Data ---
         // Appropriate for 4th/5th grade level
         const prefixes = [
@@ -363,6 +367,7 @@
             writingLabModal: document.getElementById('writing-lab-modal'),
             closeWritingBtn: document.getElementById('close-writing-btn'),
             wordBankList: document.getElementById('word-bank-list'),
+            studentName: document.getElementById('student-name'),
             storyTextarea: document.getElementById('story-textarea'),
             highlightLayer: document.getElementById('highlight-layer'),
             storyProgress: document.getElementById('story-progress'),
@@ -675,11 +680,55 @@
         }
 
         function sendStory() {
-            // We will connect this to Google Apps script in Step 2!
             const storyText = els.storyTextarea.value;
-            if(storyText.length < 10) return;
+            const studentName = els.studentName.value.trim() || "Anonymous Agent";
             
-            alert("Step 2 Setup: Story ready to transmit! \n\nNext, we will wire this button up to send to your Google Sheet.");
+            // Double check they have enough words before sending
+            const rawText = storyText.toLowerCase();
+            const wordsUsedArray = state.discovered.filter(word => {
+                const regex = new RegExp(`\\b${word}\\b`, 'g');
+                return regex.test(rawText);
+            });
+
+            if(wordsUsedArray.length < 10) return;
+
+            const payload = {
+                appName: "morphology",
+                studentName: studentName,
+                storyText: storyText,
+                wordsUsed: wordsUsedArray.join(", ")
+            };
+
+            const originalBtnText = els.sendStoryBtn.innerHTML;
+            els.sendStoryBtn.innerHTML = "TRANSMITTING TO HQ...";
+            els.sendStoryBtn.disabled = true;
+
+            // Send to Google Apps Script
+            fetch(CONFIG.scriptUrl, {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            })
+            .then(response => {
+                els.sendStoryBtn.innerHTML = "TRANSMISSION SUCCESSFUL!";
+                els.sendStoryBtn.classList.replace('bg-emerald-700', 'bg-sky-700');
+                els.sendStoryBtn.classList.replace('border-emerald-400', 'border-sky-400');
+                
+                setTimeout(() => {
+                    closeWritingLab();
+                    els.storyTextarea.value = '';
+                    handleTyping(); // reset highlight layer
+                    els.sendStoryBtn.innerHTML = originalBtnText;
+                    els.sendStoryBtn.disabled = false;
+                    els.sendStoryBtn.classList.replace('bg-sky-700', 'bg-emerald-700');
+                    els.sendStoryBtn.classList.replace('border-sky-400', 'border-emerald-400');
+                }, 2500);
+            })
+            .catch(error => {
+                console.error("Transmission failed", error);
+                alert("Comm link failed. Please try again.");
+                els.sendStoryBtn.innerHTML = originalBtnText;
+                els.sendStoryBtn.disabled = false;
+            });
         }
 
         // Initialize App
